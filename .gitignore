@@ -1,0 +1,42 @@
+### C++ ###
+# Prerequisites
+*.d
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+
+#Build Directories From VS Code and CLion
+build/
+cmake-build-debug/
+cmake-build-relwithdebinfo/
+bin/
+
+#VSCode and CLion Folders
+.vscode
+.idea
+
+#Mac File
+.DS_store
