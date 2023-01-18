@@ -29,20 +29,100 @@
 #if SL_PLATFORM_OSL
 
 #include "base/logging/logger.h"
-#include "stdio.h"
 #include "base/registry/api_registry.h"
 #include "base/third-party/cr/cr.h"
 #include "base/logging/logger.h"
 
+#include "base/memory/allocator.h"
+
+#include "GLFW/glfw3.h"
+
 static struct sl_logger_api* sl_logger_api;
+
+static sl_allocator* window_allocator;
+
+static os_window* macos_create_window(os_window_desc* p_desc)
+{
+	GLFWwindow* window = glfwCreateWindow(1280, 720, "Starlight", 0, 0);
+	return (os_window*)window;
+}
+
+void* window_alloc(size_t size, void* user_data)
+{
+	void* ptr = sl_alloc(window_allocator, size);
+	return ptr;
+}
+
+void* window_realloc(void* ptr, size_t size, void* user_data)
+{
+	void* out = sl_realloc(window_allocator, ptr, size);
+	return out;
+}
+
+void window_free(void* ptr, void* user_data)
+{
+	sl_free(window_allocator, ptr);
+}
+
+static void macos_init_window_system(sl_allocator* allocator)
+{
+	window_allocator = allocator;
+
+	GLFWallocator glfw_alloc = {
+		.allocate = window_alloc,
+		.deallocate = window_free,
+		.reallocate = window_realloc
+	};
+	glfwInitAllocator(&glfw_alloc);
+	glfwInit();
+}
+
+static void macos_poll_events(void)
+{
+	glfwPollEvents();
+}
+
+static bool macos_should_window_close(os_window* win)
+{
+	GLFWwindow* glfw = (GLFWwindow *)win;
+
+	if(glfwWindowShouldClose(glfw))
+	{
+		return true;
+	}
+	return false;
+}
+
+void macos_destroy_window(os_window* win)
+{
+	GLFWwindow* glfw = (GLFWwindow *)win;
+
+	glfwDestroyWindow(glfw);
+
+}
+
+void macos_shutdown_window_system(void)
+{
+	glfwTerminate();
+}
+
+static struct os_window_api macos_api = {
+	.create_window = macos_create_window,
+	.init_window_system = macos_init_window_system,
+	.poll_events = macos_poll_events,
+	.should_window_close = macos_should_window_close,
+	.destroy_window = macos_destroy_window,
+	.shutdown_window_system = macos_shutdown_window_system,
+};
 
 CR_EXPORT int cr_main(struct sl_api_registry* reg, struct cr_plugin *ctx, enum cr_op operation)
 {
 
 	switch(operation) {
 	case CR_LOAD:
+		reg->set(OS_WINDOW_API, &macos_api, sizeof(struct os_window_api));
 		sl_logger_api = reg->get(SL_LOGGER_API);
-		SL_LOG_INFO("Testing Window Plugin!\n");
+		SL_LOG_INFO("Testing Hot Reloading\n");
 		return 0;
 		break;
 	case CR_UNLOAD:

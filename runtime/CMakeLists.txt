@@ -16,3 +16,6 @@ if (WIN32)
 endif()
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE LINKS_SL_BASE)
+
+# Set property for my_target only
+set_property(TARGET ${PROJECT_NAME} PROPERTY RULE_LAUNCH_COMPILE "${CMAKE_COMMAND} -E time")

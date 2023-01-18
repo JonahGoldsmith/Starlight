@@ -21,38 +21,3 @@
 // SOFTWARE.
 
 //
-
-#ifndef OS_WINDOW_H
-#define OS_WINDOW_H
-
-#include "base/defines.h"
-
-struct sl_allocator;
-
-typedef struct os_window os_window;
-
-typedef struct os_window_desc
-{
-	const char* name;
-	uint32_t x, y, width, height;
-}os_window_desc;
-
-struct os_window_api
-{
-	void (*init_window_system)(struct sl_allocator* allocator);
-
-	os_window* (*create_window)(os_window_desc* p_desc);
-
-	void (*poll_events)(void);
-
-	bool (*should_window_close)(os_window* p_window);
-
-	void (*destroy_window)(os_window* p_window);
-
-	void (*shutdown_window_system)(void);
-
-};
-
-#define OS_WINDOW_API "os_window_api"
-
-#endif//OS_WINDOW_H

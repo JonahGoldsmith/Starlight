@@ -136,50 +136,43 @@ temp_allocator* create_temp_allocator_with_buffer(void* buffer, size_t size)
 #include "registry/plugin_system.h"
 #include "util/path_util.inl"
 #include "register_engine_apis.h"
+#include "registry/api_registry.h"
+#include "plugins/os_window/os_window.h"
 
-void tick(void* data)
+struct sl_job_system_api* job_api;
+struct os_window_api* window_api;
+static sl_allocator job_alloc;
+static sl_allocator window_alloc;
+
+typedef struct sl_run_state
 {
-	sl_init_plugin_system();
+	os_window* main_window;
+}sl_run_state;
 
-	//TODO Put this somewhere else
-	char temp_path[1024];
-	char back[1024];
-	char plugin_dir[1024];
-	sl_get_executable_path(temp_path, 1024);
-	sl_get_one_dir_back(temp_path, back);
-	memset(temp_path, 0, 1024);
-	sl_concat_dir("plugins", back, plugin_dir);
-	sl_concat_dir_end_slash("temp", back, temp_path);
-	//SL_LOG_INFO("%s\n", plugin_dir);
+bool tick(void* data)
+{
+	sl_run_state* state = (sl_run_state*)data;
 
-	sl_plugin_system_api->load_all_plugins(plugin_dir, temp_path);
-
-	sl_plugin_system_api->check_hot_reload();
-
-	struct sl_memory_tracker_trace* traces = sl_memory_tracker_api->trace_data();
-	for(int i = 0; i < sl_array_size(traces); i++)
+	while(!window_api->should_window_close(state->main_window))
 	{
-		SL_LOG_INFO("Context %s: Address: %#lx, Total Allocated: %llu bytes\n", sl_memory_tracker_api->context_name(traces[i].context), traces[i].ptr, traces[i].amount_allocated);
+		window_api->poll_events();
+		return true;
 	}
 
-	struct sl_memory_tracker_context* contexts = sl_memory_tracker_api->scope_data();
-	for(int i = 0; i < sl_array_size(contexts); i++)
-	{
-		SL_LOG_INFO("Context %s: Has %llu bytes allocated, with %u total allocations and %u child contexts\n", contexts[i].name, contexts[i].amount_allocated, contexts[i].allocation_count, contexts[i].num_children);
-	}
+	window_api->shutdown_window_system();
 
-	sl_shutdown_plugin_system();
-
+	return false;
 }
 
-int main()
+sl_run_state* application_init(int argc, char** argv)
 {
 	sl_init_memory_tracker();
 
 	init_logger_system();
 
+	sl_run_state* out = sl_alloc(sl_allocator_api->system, sizeof(sl_run_state));
 
-	sl_allocator job_alloc = sl_allocator_api->create_child(sl_allocator_api->system, "job_system");
+	job_alloc = sl_allocator_api->create_child(sl_allocator_api->system, "job_system");
 
 	sl_job_system_desc desc = {
 		.p_allocator = &job_alloc,
@@ -191,17 +184,52 @@ int main()
 
 	sl_os_api->thread->set_thread_name("Main Thread");
 
-	struct sl_job_system_api* job_api = sl_create_job_system(&desc);
+	job_api = sl_create_job_system(&desc);
 
 	register_engine_apis();
 
-	sl_job_decl j = {
-		.task = tick,
-		.data = 0,
-		.pinned_index = job_api->get_pin_index(0),
-		.priority = sl_normal_priority };
-	sl_job_counter *completed = job_api->run_jobs(&j, 1, sl_ss_normal);
-	job_api->wait_for_counter_os(completed, 0.01);
+	sl_init_plugin_system();
+
+	//TODO Put this somewhere else
+	char temp_path[1024];
+	char back[1024];
+	char plugin_dir[1024];
+	sl_get_executable_path(temp_path, 1024);
+	sl_get_one_dir_back(temp_path, back);
+	memset(temp_path, 0, 1024);
+	sl_concat_dir("plugins", back, plugin_dir);
+	sl_concat_dir_end_slash("temp", back, temp_path);
+
+	sl_plugin_system_api->load_all_plugins(plugin_dir, temp_path);
+
+	sl_plugin_system_api->check_hot_reload();
+
+	window_api = sl_global_api_registry->get(OS_WINDOW_API);
+
+	window_alloc = sl_allocator_api->create_child(sl_allocator_api->system, "window_system");
+
+	window_api->init_window_system(&window_alloc);
+
+	os_window* win = window_api->create_window(0);
+
+	out->main_window = win;
+
+	return out;
+
+}
+
+int main(int argc, char** argv)
+{
+	sl_run_state* app = application_init(argc, argv);
+
+	while(tick(app))
+	{
+		sl_plugin_system_api->check_hot_reload();
+	}
+
+	sl_allocator_api->destroy_child(&window_alloc);
+
+	sl_shutdown_plugin_system();
 
 	sl_destroy_job_system();
 

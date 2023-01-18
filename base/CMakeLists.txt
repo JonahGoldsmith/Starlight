@@ -73,3 +73,6 @@ endif()
 target_include_directories(${PROJECT_NAME}
         PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/
         PUBLIC ${COMPAT_DIR})
+
+# Set property for my_target only
+set_property(TARGET ${PROJECT_NAME} PROPERTY RULE_LAUNCH_COMPILE "${CMAKE_COMMAND} -E time")
