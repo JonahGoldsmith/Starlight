@@ -33,15 +33,45 @@
 #include "registry/api_registry.h"
 #include "plugins/os_window/os_window.h"
 
+#include "plugins/render_backend/render_backend.h"
+#include "plugins/render_backend_metal/render_backend_metal.h"
+#include "util/assertions.inl"
+
 struct sl_job_system_api* job_api;
 struct os_window_api* window_api;
+
+#define METAL_API
+#ifdef METAL_API
+struct sl_render_backend_metal_api* render_api;
+#endif
+
+#ifdef VULKAN_API
+struct sl_render_backend_vulkan_api* render_api;
+#endif
+
 static sl_allocator job_alloc;
+static sl_allocator render_backend_alloc;
 static sl_allocator window_alloc;
+static sl_render_backend backend;
+static sl_swapchain* swapchain;
+static os_window* main_window;
 
 typedef struct sl_run_state
 {
 	os_window* main_window;
 }sl_run_state;
+
+void resize_callback(os_window* window, int width, int height)
+{
+
+	os_window_handle handle = window_api->get_native_handle(main_window);
+
+	sl_swapchain_desc swap_desc = {
+		.handle = handle.handle
+	};
+	backend.destroy_swapchain(&backend, swapchain);
+	swapchain = backend.create_swapchain(&backend, &swap_desc);
+}
 
 bool tick(void* data)
 {
@@ -49,6 +79,7 @@ bool tick(void* data)
 
 	while(!window_api->should_window_close(state->main_window))
 	{
+		backend.present_swapchain(&backend, swapchain);
 		window_api->poll_events();
 		return true;
 	}
@@ -104,9 +135,29 @@ sl_run_state* application_init(int argc, char** argv)
 
 	window_api->init_window_system(&window_alloc);
 
-	os_window* win = window_api->create_window(0);
+	main_window = window_api->create_window(0);
 
-	out->main_window = win;
+	out->main_window = main_window;
+
+	//Rendering!
+#ifdef METAL_API
+		render_api = sl_global_api_registry->get(RENDER_BACKEND_METAL_API);
+#endif
+
+	render_backend_alloc = sl_allocator_api->create_child(sl_allocator_api->system, "render_backend");
+
+	render_api->create_backend(&backend, &render_backend_alloc);
+
+	os_window_handle handle = window_api->get_native_handle(main_window);
+
+	sl_swapchain_desc swap_desc = {
+		.handle = handle.handle
+	};
+
+	swapchain = backend.create_swapchain(&backend, &swap_desc);
+	//END RENDERING
+
+	window_api->set_window_resize_callback(main_window, resize_callback);
 
 	return out;
 
@@ -120,6 +171,12 @@ int main(int argc, char** argv)
 	{
 		sl_plugin_system_api->check_hot_reload();
 	}
+
+	backend.destroy_swapchain(&backend, swapchain);
+
+	render_api->destroy_backend(&backend);
+
+	sl_allocator_api->destroy_child(&render_backend_alloc);
 
 	sl_allocator_api->destroy_child(&window_alloc);
 

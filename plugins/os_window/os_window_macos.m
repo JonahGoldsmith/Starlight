@@ -34,7 +34,10 @@
 
 #include "base/memory/allocator.h"
 
-#include "GLFW/glfw3.h"
+#define GLFW_EXPOSE_NATIVE_COCOA
+#include <GLFW/glfw3.h>
+#include <GLFW/glfw3native.h>
+#import <MetalKit/MetalKit.h>
 
 static struct sl_logger_api* sl_logger_api;
 
@@ -43,6 +46,8 @@ static sl_allocator* window_allocator;
 static os_window* macos_create_window(os_window_desc* p_desc)
 {
 	GLFWwindow* window = glfwCreateWindow(1280, 720, "Starlight", 0, 0);
+	NSWindow* ns_window = glfwGetCocoaWindow(window);
+	ns_window.contentView.layer = [CAMetalLayer layer];
 	return (os_window*)window;
 }
 
@@ -74,6 +79,7 @@ static void macos_init_window_system(sl_allocator* allocator)
 	};
 	glfwInitAllocator(&glfw_alloc);
 	glfwInit();
+	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 }
 
 static void macos_poll_events(void)
@@ -105,6 +111,21 @@ void macos_shutdown_window_system(void)
 	glfwTerminate();
 }
 
+os_window_handle macos_get_native_handle(os_window* p_window)
+{
+	os_window_handle handle;
+	GLFWwindow* glfw = (GLFWwindow *)p_window;
+	NSWindow *ns_window = glfwGetCocoaWindow(glfw);
+	handle.handle = ns_window;
+	return handle;
+}
+
+void macos_set_window_resize_callback(os_window* p_window, window_resize_cb_fn cb)
+{
+	GLFWwindow* glfw = (GLFWwindow *)p_window;
+	glfwSetWindowSizeCallback(glfw, (GLFWwindowsizefun)cb);
+}
+
 static struct os_window_api macos_api = {
 	.create_window = macos_create_window,
 	.init_window_system = macos_init_window_system,
@@ -112,6 +133,8 @@ static struct os_window_api macos_api = {
 	.should_window_close = macos_should_window_close,
 	.destroy_window = macos_destroy_window,
 	.shutdown_window_system = macos_shutdown_window_system,
+	.get_native_handle = macos_get_native_handle,
+	.set_window_resize_callback = macos_set_window_resize_callback,
 };
 
 PLUGIN_EXPORT int sl_load_plugin(struct sl_api_registry* reg, struct cr_plugin *ctx, enum cr_op operation)

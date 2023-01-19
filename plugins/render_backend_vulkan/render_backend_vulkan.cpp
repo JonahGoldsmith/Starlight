@@ -22,8 +22,9 @@
 
 //
 
-#include "render_backend_metal.h"
+#include "render_backend_vulkan.h"
 #include "registry/plugin_util.inl"
+
 
 PLUGIN_EXPORT int sl_load_plugin(struct sl_api_registry* reg, struct cr_plugin *ctx, enum cr_op operation)
 {

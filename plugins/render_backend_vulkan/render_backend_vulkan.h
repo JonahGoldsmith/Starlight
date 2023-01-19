@@ -22,48 +22,19 @@
 
 //
 
-#ifndef OS_WINDOW_H
-#define OS_WINDOW_H
+#ifndef RENDER_BACKEND_VULKAN_H
+#define RENDER_BACKEND_VULKAN_H
 
-#include "base/defines.h"
+#include "defines.h"
 
-struct sl_allocator;
+typedef struct sl_render_backend sl_render_backend;
 
-typedef struct os_window os_window;
+typedef struct sl_allocator sl_allocator;
 
-typedef struct os_window_handle
+struct sl_render_backend_vulkan_api
 {
-	void* handle;
-}os_window_handle;
-
-typedef struct os_window_desc
-{
-	const char* name;
-	uint32_t x, y, width, height;
-}os_window_desc;
-
-typedef void (*window_resize_cb_fn)(os_window* window, int width, int height);
-
-struct os_window_api
-{
-	void (*init_window_system)(struct sl_allocator* allocator);
-
-	os_window* (*create_window)(os_window_desc* p_desc);
-
-	void (*poll_events)(void);
-
-	bool (*should_window_close)(os_window* p_window);
-
-	void (*destroy_window)(os_window* p_window);
-
-	void (*shutdown_window_system)(void);
-
-	os_window_handle (*get_native_handle)(os_window* p_window);
-
-	void (*set_window_resize_callback)(os_window* p_window, window_resize_cb_fn cb);
-
+	bool (*create_backend)(sl_render_backend* backend, sl_allocator* allocator);
+	void (*destroy_backend)(sl_render_backend* backend);
 };
 
-#define OS_WINDOW_API "os_window_api"
-
-#endif//OS_WINDOW_H
+#endif//RENDER_BACKEND_VULKAN_H

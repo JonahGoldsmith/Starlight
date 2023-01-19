@@ -25,4 +25,31 @@
 #ifndef RENDER_BACKEND_H
 #define RENDER_BACKEND_H
 
+typedef struct sl_swapchain sl_swapchain;
+
+typedef struct sl_window_handle
+{
+	void* handle;
+}sl_window_handle;
+
+typedef struct sl_swapchain_desc
+{
+	sl_window_handle handle;
+	uint32_t width, height;
+}sl_swapchain_desc;
+
+typedef struct sl_render_backend
+{
+	void* inst;
+
+	sl_swapchain* (*create_swapchain)(struct sl_render_backend* backend, sl_swapchain_desc* desc);
+
+	void (*destroy_swapchain)(struct sl_render_backend* backend, sl_swapchain* swapchain);
+
+	void (*present_swapchain)(struct sl_render_backend* backend, sl_swapchain* swapchain);
+
+	void (*resize_swapchain)(struct sl_render_backend* backend, sl_swapchain* swapchain, int width, int height);
+
+}sl_render_backend;
+
 #endif//RENDER_BACKEND_H

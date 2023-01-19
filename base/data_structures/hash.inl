@@ -35,9 +35,7 @@
 #define SL_NOT_USED(v)  (void)sizeof(v)
 #endif
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+
 
 
 #if SL_COMPILER_GNU || SL_COMPILER_CLANG
@@ -97,7 +95,7 @@ extern "C" {
     ((void) sl_hashmap_geti_ts(alloc, t,k,temp), &(t)[temp])
 
 #define sl_hashmap_del(alloc,t,k) \
-    (((t) = sl_hashmap_del_key_wrapper(alloc, (t),sizeof *(t), (void*) SL_ADDRESSOF((t)->key, (k)), sizeof (t)->key, SL_OFFSETOF((t),key), SL_HM_BINARY, SL_FUNCTION, __FILE__, __LINE__)),(t)?sl_temp((t)-1):0)
+    (((t) = sl_hashmap_del_key_wrapper(alloc, (t),sizeof (*t), (void*) SL_ADDRESSOF((t)->key, (k)), sizeof (t)->key, SL_OFFSETOF((t),key), SL_HM_BINARY, SL_FUNCTION, __FILE__, __LINE__)),(t)?sl_temp((t)-1):0)
 
 #define sl_hashmap_default(alloc, t, v) \
     ((t) = sl_hashmap_push_default_wrapper(alloc, (t), sizeof *(t), SL_FUNCTION, __FILE__, __LINE__), (t)[-1].value = (v))
@@ -200,18 +198,13 @@ enum
     SL_SH_ARENA
 };
 
-#define sl_arrgrowf_wrapper            sl_arrgrowf
-#define sl_hashmap_get_key_wrapper           sl_hashmap_get_key
-#define sl_hashmap_get_key_ts_wrapper        sl_hashmap_get_key_ts
-#define sl_hashmap_push_default_wrapper       sl_hashmap_push_default
-#define sl_hashmap_push_key_wrapper           sl_hashmap_push_key
-#define sl_hashmap_del_key_wrapper           sl_hashmap_del_key
-#define sl_shmode_func_wrapper(t,e,m,func, file, line)  sl_shmode_func(e,m, func, file, line)
-
 #define SL_HM_ASSERT(x)   ((void) 0)
 
 #define SL_HM_STATS(x)
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 SL_FORCE_INLINE void *sl_arrgrowf(sl_allocator* alloc, void *a, size_t elemsize, size_t addlen, size_t min_cap,
 								  const char* func, const char* file, uint32_t line)
@@ -1090,6 +1083,48 @@ SL_FORCE_INLINE void * sl_hashmap_del_key(sl_allocator* alloc, void *a, size_t e
 }
 #endif
 
+#ifdef __cplusplus
+// in C we use implicit assignment from these void*-returning functions to T*.
+// in C++ these templates make the same code work
+template<class T> static T * sl_arrgrowf_wrapper(sl_allocator* alloc, T *a, size_t elemsize, size_t addlen, size_t min_cap,
+							  const char* func, const char* file, uint32_t line) {
+	return (T*)sl_arrgrowf(alloc, (void *)a, elemsize, addlen, min_cap, func, file, line);
+}
+template<class T> static T * sl_hashmap_get_key_wrapper(sl_allocator* alloc, T *a, size_t elemsize, void *key, size_t keysize, int mode,
+									 const char* func, const char* file, uint32_t line) {
+	return (T*)sl_hashmap_get_key(alloc, (void*)a, elemsize, key, keysize, mode, func, file, line);
+}
+template<class T> static T * sl_hashmap_get_key_ts_wrapper(sl_allocator* alloc, T *a, size_t elemsize, void *key, size_t keysize, ptrdiff_t *temp, int mode,
+										const char * func, const char* file, uint32_t line) {
+	return (T*)sl_hashmap_get_key_ts(alloc, (void*)a, elemsize, key, keysize, temp, mode, func, file, line);
+}
+template<class T> static T * sl_hashmap_push_default_wrapper(sl_allocator* alloc, T *a, size_t elemsize, const char* func, const char* file, uint32_t line) {
+	return (T*)sl_hashmap_push_default(alloc, (void *)a, elemsize, func, file, line);
+}
+template<class T> static T * sl_hashmap_push_key_wrapper(sl_allocator* alloc, T *a, size_t elemsize, void *key, size_t keysize, int mode,
+									  const char* func, const char* file, uint32_t line) {
+	return (T*)sl_hashmap_push_key(alloc, (void*)a, elemsize, key, keysize, mode, func, file, line);
+}
+template<class T> static T * sl_hashmap_del_key_wrapper(sl_allocator* alloc, T *a, size_t elemsize, void *key, size_t keysize, size_t keyoffset, int mode,
+									 const char* func, const char* file, uint32_t line){
+	return (T*)sl_hashmap_del_key(alloc, (void*)a, elemsize, key, keysize, keyoffset, mode, func, file, line);
+}
+template<class T> static T * sl_shmode_func_wrapper(sl_allocator* alloc, T *, size_t elemsize, int mode, const char* func, const char* file, uint32_t line) {
+	return (T*)sl_shmode_func(alloc, elemsize, mode, func, file, line);
+}
+#else
+#define sl_arrgrowf_wrapper            sl_arrgrowf
+#define sl_hashmap_get_key_wrapper           sl_hashmap_get_key
+#define sl_hashmap_get_key_ts_wrapper        sl_hashmap_get_key_ts
+#define sl_hashmap_push_default_wrapper       sl_hashmap_push_default
+#define sl_hashmap_push_key_wrapper           sl_hashmap_push_key
+#define sl_hashmap_del_key_wrapper           sl_hashmap_del_key
+#define sl_shmode_func_wrapper(t,e,m,func, file, line)  sl_shmode_func(e,m, func, file, line)
+#endif
 
+#define hmlen sl_hashmap_sizeu
+#define hmput sl_hashmap_push
+#define hmdel sl_hashmap_del
+#define hmfree sl_hashmap_free
 
 #endif //STARLIGHT_HASH_INL

@@ -25,13 +25,18 @@
 #ifndef RENDER_BACKEND_METAL_H
 #define RENDER_BACKEND_METAL_H
 
+#include "defines.h"
 
+typedef struct sl_render_backend sl_render_backend;
 
-struct render_backend_metal_api
+typedef struct sl_allocator sl_allocator;
+
+struct sl_render_backend_metal_api
 {
-
+	bool (*create_backend)(sl_render_backend* backend, sl_allocator* allocator);
+	void (*destroy_backend)(sl_render_backend* backend);
 };
 
-#define RENDER_BACKEND_METAL_API "render_backend_metal_api"
+#define RENDER_BACKEND_METAL_API "sl_render_backend_metal_api"
 
 #endif//RENDER_BACKEND_METAL_H
