@@ -63,12 +63,12 @@ typedef struct sl_run_state
 
 void resize_callback(os_window* window, int width, int height)
 {
-
 	os_window_handle handle = window_api->get_native_handle(main_window);
 
 	sl_swapchain_desc swap_desc = {
 		.handle = handle.handle
 	};
+	
 	backend.destroy_swapchain(&backend, swapchain);
 	swapchain = backend.create_swapchain(&backend, &swap_desc);
 }
