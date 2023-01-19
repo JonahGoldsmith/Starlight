@@ -29,8 +29,7 @@
 #if SL_PLATFORM_OSL
 
 #include "base/logging/logger.h"
-#include "base/registry/api_registry.h"
-#include "base/third-party/cr/cr.h"
+#include "registry/plugin_util.inl"
 #include "base/logging/logger.h"
 
 #include "base/memory/allocator.h"
@@ -115,7 +114,7 @@ static struct os_window_api macos_api = {
 	.shutdown_window_system = macos_shutdown_window_system,
 };
 
-CR_EXPORT int cr_main(struct sl_api_registry* reg, struct cr_plugin *ctx, enum cr_op operation)
+PLUGIN_EXPORT int sl_load_plugin(struct sl_api_registry* reg, struct cr_plugin *ctx, enum cr_op operation)
 {
 
 	switch(operation) {
@@ -127,6 +126,10 @@ CR_EXPORT int cr_main(struct sl_api_registry* reg, struct cr_plugin *ctx, enum c
 		break;
 	case CR_UNLOAD:
 		return 0;
+		break;
+	case CR_STEP:
+		break;
+	case CR_CLOSE:
 		break;
 	}
 

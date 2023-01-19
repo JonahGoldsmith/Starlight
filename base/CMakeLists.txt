@@ -46,7 +46,8 @@ set(REGISTRY
         registry/plugin_system.h
         registry/plugin_system.cpp
         registry/api_registry.c
-        registry/api_registry.h)
+        registry/api_registry.h
+        registry/plugin_util.inl)
 
 set(SOURCES
         ${UTIL} ${OS} ${DATA_STRUCTURES} ${THREAD} ${MEMORY} ${BASE} ${LOGGING} ${REGISTRY})

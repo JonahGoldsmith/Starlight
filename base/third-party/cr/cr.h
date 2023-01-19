@@ -412,9 +412,9 @@ platform should be supported."
 
 #if defined(__GNUC__) // clang & gcc
 #if defined(__cplusplus)
-#define CR_EXPORT extern "C" __attribute__((visibility("default")))
+#define PLUGIN_EXPORT extern "C" __attribute__((visibility("default")))
 #else
-#define CR_EXPORT __attribute__((visibility("default")))
+#define PLUGIN_EXPORT __attribute__((visibility("default")))
 #endif
 #define CR_IMPORT
 #endif // defined(__GNUC__)
@@ -481,7 +481,6 @@ typedef int (*cr_plugin_main_func)(struct sl_api_registry* reg, struct cr_plugin
 //   happen to cause a rollback reload used by the crash protection system
 struct cr_plugin {
     void *p;
-    void *userdata;
     unsigned int version;
     enum cr_failure failure;
     unsigned int next_version;
@@ -535,7 +534,7 @@ struct cr_plugin {
 #endif
 
 #ifndef CR_MAIN_FUNC
-#   define CR_MAIN_FUNC "cr_main"
+#   define CR_MAIN_FUNC "sl_load_plugin"
 #endif
 
 #ifndef CR_ASSERT

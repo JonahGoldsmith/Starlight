@@ -10,3 +10,5 @@ include_directories(../plugins)
 include_directories(../base)
 
 add_subdirectory(os_window)
+add_subdirectory(render_backend)
+add_subdirectory(render_backend_metal)

@@ -65,7 +65,7 @@ int main(int argc, char *argv[]) {
 While the guest (real application), would be like:
 
 ```c
-CR_EXPORT int cr_main(struct cr_plugin *ctx, enum cr_op operation) {
+PLUGIN_EXPORT int cr_main(struct cr_plugin *ctx, enum cr_op operation) {
     assert(ctx);
     switch (operation) {
         case CR_LOAD:   return on_load(...); // loading back from a reload
@@ -395,19 +395,19 @@ platform should be supported."
 //
 #if defined(_MSC_VER)
 #if defined(__cplusplus)
-#define CR_EXPORT extern "C" __declspec(dllexport)
+#define PLUGIN_EXPORT extern "C" __declspec(dllexport)
 #define CR_IMPORT extern "C" __declspec(dllimport)
 #else
-#define CR_EXPORT __declspec(dllexport)
+#define PLUGIN_EXPORT __declspec(dllexport)
 #define CR_IMPORT __declspec(dllimport)
 #endif
 #endif // defined(_MSC_VER)
 
 #if defined(__GNUC__) // clang & gcc
 #if defined(__cplusplus)
-#define CR_EXPORT extern "C" __attribute__((visibility("default")))
+#define PLUGIN_EXPORT extern "C" __attribute__((visibility("default")))
 #else
-#define CR_EXPORT __attribute__((visibility("default")))
+#define PLUGIN_EXPORT __attribute__((visibility("default")))
 #endif
 #define CR_IMPORT
 #endif // defined(__GNUC__)
