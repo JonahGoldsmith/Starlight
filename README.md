@@ -131,8 +131,6 @@ Usage Examples of the Base Library Will be Included in the Testbed and Testing P
 
 See the [open issues](https://github.com/JonahGoldsmith/StarlightEngine/issues) for a full list of proposed features (and known issues).
 
-See the [Todo File](Todo.txt) For a List of Todo's.
-
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 
