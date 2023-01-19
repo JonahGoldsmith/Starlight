@@ -95,9 +95,9 @@ This project is in its baby stages so only  use it for learning or for aiding de
 
 ### Prerequisites
 
-Must have CMake, a C and C++ Compiler and an ASM Compiler on the System.
+Must have Cmake, and a C/C++ Compiler
 
-We are Prioritizing Support for Clang, and MSVC.
+We are Prioritizing Support for Clang, GCC, and MSVC.
 I Want to Support MINGW and other Compilers but I am not Familiar with the Platforms
 
 
