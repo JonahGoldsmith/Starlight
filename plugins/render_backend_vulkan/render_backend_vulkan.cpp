@@ -20,28 +20,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-//
-
 #include "render_backend_vulkan.h"
-#include "registry/plugin_util.inl"
 
 
-PLUGIN_EXPORT int sl_load_plugin(struct sl_api_registry* reg, struct cr_plugin *ctx, enum cr_op operation)
-{
-
-	switch(operation) {
-	case CR_LOAD:
-		return 0;
-		break;
-	case CR_UNLOAD:
-		return 0;
-		break;
-	case CR_STEP:
-		break;
-	case CR_CLOSE:
-		break;
-	}
-
-	return 0;
-
-}

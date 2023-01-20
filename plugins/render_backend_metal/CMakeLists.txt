@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.2)
 project(render_backend_metal)
 
 if(PLATFORM_MACOS)
-    add_library(${PROJECT_NAME} SHARED render_backend_metal.h render_backend_metal.mm)
+    add_library(${PROJECT_NAME} SHARED render_backend_metal.h render_backend_metal.mm metal_availability_macros.h)
     find_library(COCOA_LIBRARY Cocoa)
     find_library(QUARTZ_LIBRARY QuartzCore)
     find_library(METALKIT_LIBRARY MetalKit)

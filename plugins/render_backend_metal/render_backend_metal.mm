@@ -24,18 +24,27 @@
 #include "base/memory/allocator.h"
 #include "registry/plugin_util.inl"
 #include "render_backend/render_backend.h"
+#import "thread/mutex.inl"
 #import "util/assertions.inl"
 
 #import <Metal/Metal.h>
 #import <MetalKit/MetalKit.h>
+#include "metal_availability_macros.h"
 #import <MetalPerformanceShaders/MetalPerformanceShaders.h>
+
+#define NOREFS __unsafe_unretained
 
 struct metal_backend
 {
 	id<MTLDevice> gpu;
-	id<MTLCommandQueue> transfer_queue;
 	id<MTLCommandQueue> graphics_queue;
 	sl_allocator* allocator;
+	struct VmaAllocator_T* vma_allocator;
+	NOREFS id<MTLHeap>* heaps API_AVAILABLE(macos(10.13), ios(10.0));
+	uint32_t                   heap_count;
+	uint32_t                   heap_capacity;
+	// To synchronize resource allocation done through automatic heaps
+	sl_os_mutex*   heap_mutex;
 };
 
 struct metal_swapchain
@@ -66,13 +75,6 @@ void metal_destroy_swapchain(struct sl_render_backend* backend, sl_swapchain* sw
 	metal_swapchain* mtl_swapchain = reinterpret_cast<metal_swapchain *>(swapchain);
 
 	sl_free(mtl->allocator, mtl_swapchain);
-
-}
-
-void metal_resize_swapchain(struct sl_render_backend* backend, sl_swapchain* swapchain)
-{
-	metal_backend* mtl = static_cast<metal_backend *>(backend->inst);
-	metal_swapchain* mtl_swapchain = reinterpret_cast<metal_swapchain *>(swapchain);
 
 }
 
@@ -108,7 +110,7 @@ bool metal_create_backend(sl_render_backend* backend, sl_allocator* allocator)
 	metal_backend* out = static_cast<metal_backend *>(sl_alloc(allocator, sizeof(metal_backend)));
 	out->allocator = allocator;
 	out->gpu = MTLCreateSystemDefaultDevice();
-	out->graphics_queue = [out->gpu newCommandQueue];
+	out->graphics_queue = [out->gpu newCommandQueueWithMaxCommandBufferCount:512];
 	SL_ASSERT(out->gpu, "Failed to create default Metal device!");
 	if(!out->gpu)
 		return false;

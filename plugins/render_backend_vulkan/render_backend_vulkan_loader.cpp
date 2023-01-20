@@ -20,22 +20,35 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-//
+#include "render_backend_vulkan_loader.h"
+#include "registry/plugin_util.inl"
 
-#ifndef RENDER_BACKEND_VULKAN_H
-#define RENDER_BACKEND_VULKAN_H
+#include "render_backend_vulkan.h"
 
-#include "base/defines.h"
+#define VOLK_IMPLEMENTATION
+#include "volk.h"
 
-typedef struct sl_render_backend sl_render_backend;
+#define VMA_IMPLEMENTATION
+#include "vk_mem_alloc.h"
 
-typedef struct sl_allocator sl_allocator;
 
-struct sl_render_backend_vulkan_api
+
+PLUGIN_EXPORT int sl_load_plugin(struct sl_api_registry* reg, struct cr_plugin *ctx, enum cr_op operation)
 {
-	bool (*create_backend)(sl_render_backend* backend, sl_allocator* allocator);
-	void (*destroy_backend)(sl_render_backend* backend);
-};
 
-#define RENDER_BACKEND_VULKAN_API "sl_render_backend_vulkan_api"
-#endif//RENDER_BACKEND_VULKAN_H
+	switch(operation) {
+	case CR_LOAD:
+		return 0;
+		break;
+	case CR_UNLOAD:
+		return 0;
+		break;
+	case CR_STEP:
+		break;
+	case CR_CLOSE:
+		break;
+	}
+
+	return 0;
+
+}

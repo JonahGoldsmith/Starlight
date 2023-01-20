@@ -22,20 +22,9 @@
 
 //
 
-#ifndef RENDER_BACKEND_VULKAN_H
-#define RENDER_BACKEND_VULKAN_H
+#ifndef RENDER_BACKEND_VULKAN_LOADER_H
+#define RENDER_BACKEND_VULKAN_LOADER_H
 
 #include "base/defines.h"
 
-typedef struct sl_render_backend sl_render_backend;
-
-typedef struct sl_allocator sl_allocator;
-
-struct sl_render_backend_vulkan_api
-{
-	bool (*create_backend)(sl_render_backend* backend, sl_allocator* allocator);
-	void (*destroy_backend)(sl_render_backend* backend);
-};
-
-#define RENDER_BACKEND_VULKAN_API "sl_render_backend_vulkan_api"
-#endif//RENDER_BACKEND_VULKAN_H
+#endif//RENDER_BACKEND_VULKAN_LOADER_H
