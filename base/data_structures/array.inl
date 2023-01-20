@@ -98,7 +98,7 @@
  * @param alloc The allocator to be used
 * @param a The array
  */
-#define sl_array_free(alloc, a)       ((void) ((a) ? sl_free(alloc, sl_array_get_header(a)) : (void)0), (a)=NULL)
+#define sl_array_free(alloc, a)       ((void) ((a) ? sl_free(alloc, sl_array_get_header(a)) : (void*)0), (a)=NULL)
 
 
 #define sl_array_del(a,i)      sl_array_deln(a,i,1)
@@ -130,17 +130,6 @@ typedef struct
  */
 			  size_t      capacity;
 } sl_array_header;
-
-#ifdef __cplusplus
-		  // in C we use implicit assignment from these void*-returning functions to T*.
-		  // in C++ these templates make the same code work
-		  template<class T> static T * sl_array_grow_wrapper(T *a, size_t elemsize, size_t addlen, size_t min_cap, const char* func, const char* file, uint32_t line) {
-			  return (T*)sl_array_grow_internal((void *)a, elemsize, addlen, min_cap, func, file, line);
-		  }
-#else
-#define sl_array_grow_wrapper            sl_array_grow_internal
-#endif
-
 
 		  SL_FORCE_INLINE void *sl_array_grow_internal(sl_allocator* alloc, void *a, size_t elemsize, size_t addlen, size_t min_cap, const char* func, const char* file, uint32_t line)
 		  {
@@ -174,7 +163,18 @@ typedef struct
 			  return b;
 		  }
 
-#define SL_ARRAY(type, name) type name
+
+#ifdef __cplusplus
+		  // in C we use implicit assignment from these void*-returning functions to T*.
+		  // in C++ these templates make the same code work
+		  template<class T> static T * sl_array_grow_wrapper(sl_allocator* alloc, T *a, size_t elemsize, size_t addlen, size_t min_cap, const char* func, const char* file, uint32_t line) {
+			  return (T*)sl_array_grow_internal(alloc, (void *)a, elemsize, addlen, min_cap, func, file, line);
+		  }
+#else
+#define sl_array_grow_wrapper            sl_array_grow_internal
+#endif
+
+#define SL_ARRAY(type, name) type* name
 
 		  /*
 ------------------------------------------------------------------------------

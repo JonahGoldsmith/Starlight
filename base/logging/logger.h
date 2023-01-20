@@ -63,6 +63,12 @@ struct sl_logger_api {
 
 #define SL_LOG_ERROR(format, ...) sl_logger_api->log_printf(sl_log_level_error, __FILE__, __LINE__, "" format "", ##__VA_ARGS__)
 
+#ifdef NOT_IMPLEMENTED_LOG
+#define SL_NOT_IMPLEMENTED() sl_logger_api->log_printf(sl_log_level_debug, __FILE__, __LINE__, "%s IS NOT IMPLEMENTED!\n", SL_FUNCTION)
+#else
+#define SL_NOT_IMPLEMENTED()
+#endif
+
 #ifdef LINKS_SL_BASE
 extern void init_logger_system(void);
 extern struct sl_logger_api *sl_logger_api;

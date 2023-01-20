@@ -64,8 +64,8 @@ typedef struct internal_memory_tracker
     //TODO: should this be bigger?
     sl_memory_tracker_context contexts[MAX_CONTEXTS];
 
-    SL_ARRAY(uint32_t*, context_list);
-    SL_ARRAY(struct sl_memory_tracker_trace*, traces);
+    SL_ARRAY(uint32_t, context_list);
+    SL_ARRAY(struct sl_memory_tracker_trace, traces);
 
     ptr_map* ptr_map;
     trace_map* trace_map;

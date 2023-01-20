@@ -35,16 +35,18 @@
 
 #include "plugins/render_backend/render_backend.h"
 #include "plugins/render_backend_metal/render_backend_metal.h"
+#include "plugins/render_backend_vulkan/render_backend_vulkan.h"
 #include "util/assertions.inl"
 
 struct sl_job_system_api* job_api;
 struct os_window_api* window_api;
 
-#define METAL_API
+//#define METAL_API
 #ifdef METAL_API
 struct sl_render_backend_metal_api* render_api;
 #endif
 
+#define VULKAN_API
 #ifdef VULKAN_API
 struct sl_render_backend_vulkan_api* render_api;
 #endif
@@ -68,7 +70,7 @@ void resize_callback(os_window* window, int width, int height)
 	sl_swapchain_desc swap_desc = {
 		.handle = handle.handle
 	};
-	
+
 	backend.destroy_swapchain(&backend, swapchain);
 	swapchain = backend.create_swapchain(&backend, &swap_desc);
 }
@@ -142,6 +144,8 @@ sl_run_state* application_init(int argc, char** argv)
 	//Rendering!
 #ifdef METAL_API
 		render_api = sl_global_api_registry->get(RENDER_BACKEND_METAL_API);
+#elif defined(VULKAN_API)
+	render_api = sl_global_api_registry->get(RENDER_BACKEND_VULKAN_API);
 #endif
 
 	render_backend_alloc = sl_allocator_api->create_child(sl_allocator_api->system, "render_backend");

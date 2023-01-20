@@ -38,4 +38,5 @@ struct sl_render_backend_vulkan_api
 };
 
 #define RENDER_BACKEND_VULKAN_API "sl_render_backend_vulkan_api"
+
 #endif//RENDER_BACKEND_VULKAN_H
