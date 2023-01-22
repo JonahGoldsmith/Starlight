@@ -177,6 +177,9 @@ struct vulkan_backend
 	VkInstance instance;
 	VkDevice device;
 	VkPhysicalDevice physical_device;
+	VmaAllocator vma_allocator;
+	VkQueue graphics_queue;
+	VkQueue transfer_queue;
 #if ENABLE_GRAPHICS_DEBUG
 	VkDebugUtilsMessengerEXT debug_messenger;
 #endif
@@ -371,22 +374,54 @@ bool vulkan_create_backend(sl_render_backend* backend, sl_allocator* allocator)
 
 		//End picking Device
 		uint32_t index = 0;
+		uint32_t index_two = 0;
 		for(int i = 0; i < queueFamilyCount; i++)
 		{
 			if(queueFamilies[i].queueFlags & VK_QUEUE_GRAPHICS_BIT)
 			{
 				index = i;
+				continue;
+			}
+			if(queueFamilies[i+1].queueFlags & VK_QUEUE_TRANSFER_BIT)
+			{
+				index_two = i;
 				break;
 			}
+		}
+
+		uint32_t d_layer_count = 0;
+		uint32_t d_ext_count = 0;
+		vkEnumerateDeviceLayerProperties(vk->physical_device, &d_layer_count, NULL);
+		vkEnumerateDeviceExtensionProperties(vk->physical_device, NULL, &d_ext_count, NULL);
+
+		VkLayerProperties* d_layers = (VkLayerProperties*)alloca(sizeof(VkLayerProperties) * d_layer_count);
+		vkEnumerateDeviceLayerProperties(vk->physical_device, &d_layer_count, d_layers);
+
+		VkExtensionProperties* d_exts = (VkExtensionProperties*)alloca(sizeof(VkExtensionProperties) * d_ext_count);
+		vkEnumerateDeviceExtensionProperties(vk->physical_device, NULL, &d_ext_count, d_exts);
+
+		for(int i = 0; i < d_layer_count; i++)
+		{
+			SL_LOG_INFO("Found Device Layer: %s\n", d_layers[i].layerName);
+		}
+
+		for(int i = 0; i < d_ext_count; i++)
+		{
+			SL_LOG_INFO("Found Device Ext: %s\n", d_exts[i].extensionName);
 		}
 
 		//Create Logical Device
 		float queuePriorities[] = { 1.0f };
 
-		VkDeviceQueueCreateInfo queueInfo = { VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO };
-		queueInfo.queueFamilyIndex = index;
-		queueInfo.queueCount = 1;
-		queueInfo.pQueuePriorities = queuePriorities;
+		VkDeviceQueueCreateInfo queueInfo[2] = {};
+		queueInfo[0].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+		queueInfo[0].queueFamilyIndex = index;
+		queueInfo[0].queueCount = 1;
+		queueInfo[0].pQueuePriorities = queuePriorities;
+		queueInfo[1].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+		queueInfo[1].queueFamilyIndex = index_two;
+		queueInfo[1].queueCount = 1;
+		queueInfo[1].pQueuePriorities = queuePriorities;
 
 		const char* device_extensions[] =
 			{
@@ -394,17 +429,81 @@ bool vulkan_create_backend(sl_render_backend* backend, sl_allocator* allocator)
 #ifdef __APPLE__
 				"VK_KHR_portability_subset",
 #endif
+				//VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME,
+				VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME,
+				VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME,
+				VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME,
+				//VK_KHR_MAINTENANCE1_EXTENSION_NAME,
 			};
 
 		VkDeviceCreateInfo createInfo = { VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO };
-		createInfo.queueCreateInfoCount = 1;
-		createInfo.pQueueCreateInfos = &queueInfo;
+		createInfo.queueCreateInfoCount = 2;
+		createInfo.pQueueCreateInfos = queueInfo;
 
 		createInfo.ppEnabledExtensionNames = device_extensions;
 		createInfo.enabledExtensionCount = sizeof(device_extensions) / sizeof(device_extensions[0]);
 
 		CHECK_VKRESULT(vkCreateDevice(vk->physical_device, &createInfo, &vk_allocation_callbacks, &vk->device));
+		//End Device Creation!
 
+		//Create The Queues for the backend.. For now only graphics and transfer
+		vkGetDeviceQueue(vk->device, index, 0, &vk->graphics_queue);
+		vkGetDeviceQueue(vk->device, index_two, 0, &vk->transfer_queue);
+
+		VmaAllocatorCreateInfo vma_info = { 0 };
+		vma_info.device = vk->device;
+		vma_info.physicalDevice = vk->physical_device;
+		vma_info.instance = vk->instance;
+
+		vma_info.flags |= VMA_ALLOCATOR_CREATE_KHR_DEDICATED_ALLOCATION_BIT;
+
+		vma_info.flags |= VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
+
+		VmaVulkanFunctions vulkanFunctions = {};
+		vulkanFunctions.vkGetInstanceProcAddr = vkGetInstanceProcAddr;
+		vulkanFunctions.vkGetDeviceProcAddr = vkGetDeviceProcAddr;
+		vulkanFunctions.vkAllocateMemory = vkAllocateMemory;
+		vulkanFunctions.vkBindBufferMemory = vkBindBufferMemory;
+		vulkanFunctions.vkBindImageMemory = vkBindImageMemory;
+		vulkanFunctions.vkCreateBuffer = vkCreateBuffer;
+		vulkanFunctions.vkCreateImage = vkCreateImage;
+		vulkanFunctions.vkDestroyBuffer = vkDestroyBuffer;
+		vulkanFunctions.vkDestroyImage = vkDestroyImage;
+		vulkanFunctions.vkFreeMemory = vkFreeMemory;
+		vulkanFunctions.vkGetBufferMemoryRequirements = vkGetBufferMemoryRequirements;
+		vulkanFunctions.vkGetBufferMemoryRequirements2KHR = vkGetBufferMemoryRequirements2KHR;
+		vulkanFunctions.vkGetImageMemoryRequirements = vkGetImageMemoryRequirements;
+		vulkanFunctions.vkGetImageMemoryRequirements2KHR = vkGetImageMemoryRequirements2KHR;
+		vulkanFunctions.vkGetPhysicalDeviceMemoryProperties = vkGetPhysicalDeviceMemoryProperties;
+		vulkanFunctions.vkGetPhysicalDeviceProperties = vkGetPhysicalDeviceProperties;
+		vulkanFunctions.vkMapMemory = vkMapMemory;
+		vulkanFunctions.vkUnmapMemory = vkUnmapMemory;
+		vulkanFunctions.vkFlushMappedMemoryRanges = vkFlushMappedMemoryRanges;
+		vulkanFunctions.vkInvalidateMappedMemoryRanges = vkInvalidateMappedMemoryRanges;
+		vulkanFunctions.vkCmdCopyBuffer = vkCmdCopyBuffer;
+#if VMA_BIND_MEMORY2 || VMA_VULKAN_VERSION >= 1001000
+		/// Fetch "vkBindBufferMemory2" on Vulkan >= 1.1, fetch "vkBindBufferMemory2KHR" when using VK_KHR_bind_memory2 extension.
+		vulkanFunctions.vkBindBufferMemory2KHR = vkBindBufferMemory2KHR;
+		/// Fetch "vkBindImageMemory2" on Vulkan >= 1.1, fetch "vkBindImageMemory2KHR" when using VK_KHR_bind_memory2 extension.
+		vulkanFunctions.vkBindImageMemory2KHR = vkBindImageMemory2KHR;
+#endif
+#if VMA_MEMORY_BUDGET || VMA_VULKAN_VERSION >= 1001000
+#ifdef NX64
+		vulkanFunctions.vkGetPhysicalDeviceMemoryProperties2KHR = vkGetPhysicalDeviceMemoryProperties2;
+#else
+		vulkanFunctions.vkGetPhysicalDeviceMemoryProperties2KHR = vkGetPhysicalDeviceMemoryProperties2KHR;
+#endif
+#endif
+#if VMA_VULKAN_VERSION >= 1003000
+		/// Fetch from "vkGetDeviceBufferMemoryRequirements" on Vulkan >= 1.3, but you can also fetch it from "vkGetDeviceBufferMemoryRequirementsKHR" if you enabled extension VK_KHR_maintenance4.
+		vulkanFunctions.vkGetDeviceBufferMemoryRequirements = vkGetDeviceBufferMemoryRequirements;
+		/// Fetch from "vkGetDeviceImageMemoryRequirements" on Vulkan >= 1.3, but you can also fetch it from "vkGetDeviceImageMemoryRequirementsKHR" if you enabled extension VK_KHR_maintenance4.
+		vulkanFunctions.vkGetDeviceImageMemoryRequirements = vkGetDeviceImageMemoryRequirements;
+#endif
+
+		vma_info.pVulkanFunctions = &vulkanFunctions;
+		vma_info.pAllocationCallbacks = &vk_allocation_callbacks;
+		vmaCreateAllocator(&vma_info, &vk->vma_allocator);
 
 		/*
 		 * Set the function pointers
@@ -422,6 +521,8 @@ bool vulkan_create_backend(sl_render_backend* backend, sl_allocator* allocator)
 void vulkan_destroy_backend(sl_render_backend* backend)
 {
 	vulkan_backend* vk = (vulkan_backend*)backend->inst;
+
+	vmaDestroyAllocator(vk->vma_allocator);
 
 	vkDestroyDevice(vk->device, &vk_allocation_callbacks);
 
