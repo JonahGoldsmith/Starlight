@@ -34,6 +34,19 @@
 #define ENABLE_DEBUG_UTILS_EXTENSION
 #endif
 
+#if SL_PLATFORM_WINDOWS || SL_PLATFORM_XBOXONE
+#define VK_USE_PLATFORM_WIN32_KHR
+#elif SL_PLATFORM_ANDROID
+#ifndef VK_USE_PLATFORM_ANDROID_KHR
+#define VK_USE_PLATFORM_ANDROID_KHR
+#endif
+#elif SL_PLATFORM_LINUX
+// TODO: Separate vulkan ext from choosing xlib vs xcb
+#define VK_USE_PLATFORM_XLIB_KHR    //Use Xlib or Xcb as display server, defaults to Xlib
+#elif defined(__APPLE__)
+#define VK_USE_PLATFORM_METAL_EXT
+#endif
+
 #define CHECK_VKRESULT(exp)                                                      \
 	{                                                                            \
 		VkResult vkres = (exp);                                                  \

@@ -69,7 +69,7 @@ const char* vk_wanted_instance_extensions[] =
 		VK_GGP_STREAM_DESCRIPTOR_SURFACE_EXTENSION_NAME,
 #elif defined(VK_USE_PLATFORM_VI_NN)
 		VK_NN_VI_SURFACE_EXTENSION_NAME,
-#elif defined(__APPLE__)
+#elif defined(VK_USE_PLATFORM_METAL_EXT)
 		VK_EXT_METAL_SURFACE_EXTENSION_NAME,
 		VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME,
 #endif
@@ -369,13 +369,28 @@ struct vulkan_swapchain
 #pragma region vulkan_swapchain
 sl_swapchain* vulkan_create_swapchain(struct sl_render_backend* backend, sl_swapchain_desc* desc)
 {
-	vulkan_swapchain vk_swapchain = sl_alloc(backend_allocator, sizeof(vulkan_swapchain));
+	vulkan_backend* vk = (vulkan_backend*)backend->inst;
+	vulkan_swapchain* vk_swapchain = (vulkan_swapchain*)sl_alloc(backend_allocator, sizeof(vulkan_swapchain));
+
+#if defined(VK_USE_PLATFORM_METAL_EXT)
+	DECLARE_ZERO(VkMetalSurfaceCreateInfoEXT, create_info);
+	create_info.sType = VK_STRUCTURE_TYPE_METAL_SURFACE_CREATE_INFO_EXT;
+	create_info.pLayer = desc->handle.layer;
+	create_info.flags = 0;
+	create_info.pNext = 0;
+	vkCreateMetalSurfaceEXT(vk->instance, &create_info, &vk_allocation_callbacks, &vk_swapchain->surface);
+#endif
+
+	return (sl_swapchain*)vk_swapchain;
 }
 
 void vulkan_destroy_swapchain(struct sl_render_backend* backend, sl_swapchain* swapchain)
 {
+	vulkan_backend* vk = (vulkan_backend*)backend->inst;
+	vulkan_swapchain* vk_swap = (vulkan_swapchain*)swapchain;
+	vkDestroySurfaceKHR(vk->instance, vk_swap->surface, &vk_allocation_callbacks);
 
-	SL_NOT_IMPLEMENTED();
+	sl_free(vk->allocator, swapchain);
 
 }
 
@@ -396,10 +411,10 @@ static void vulkan_create_instance(vulkan_backend* vk, uint32_t instance_layer_c
 	vkEnumerateInstanceLayerProperties(&layer_count, NULL);
 	vkEnumerateInstanceExtensionProperties(NULL, &ext_count, NULL);
 
-	VkLayerProperties* layers = (VkLayerProperties*)alloca(sizeof(VkLayerProperties) * layer_count);
+	VkLayerProperties layers[layer_count];
 	vkEnumerateInstanceLayerProperties(&layer_count, layers);
 
-	VkExtensionProperties* exts = (VkExtensionProperties*)alloca(sizeof(VkExtensionProperties) * ext_count);
+	VkExtensionProperties exts[ext_count];
 	vkEnumerateInstanceExtensionProperties(NULL, &ext_count, exts);
 
 #if VK_DEBUG_LOG_EXTENSIONS
@@ -631,7 +646,7 @@ static bool vulkan_init_common(vulkan_backend* vk)
 		return false;
 	}
 #else
-	const char** instance_layers = (const char**)alloca((2) * sizeof(char*));
+	const char* instance_layers[2];
 	uint32_t instance_layer_count = 0;
 
 #if defined(ENABLE_GRAPHICS_DEBUG)
@@ -899,8 +914,13 @@ bool vulkan_add_device(vulkan_backend* vk)
 	VkPhysicalDeviceMultiviewFeatures multiviewFeatures = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MULTIVIEW_FEATURES };
 	ADD_TO_NEXT_CHAIN(vk->mVulkan.mMultiviewExtension, multiviewFeatures);
 #endif
-
-
+#if VK_KHR_dynamic_rendering
+	VkPhysicalDeviceDynamicRenderingFeaturesKHR dynamic_rendering_feature {
+		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR,
+		.dynamicRendering = VK_TRUE,
+	};
+	ADD_TO_NEXT_CHAIN(vk->active_gpu_settings.dynamic_rendering, dynamic_rendering_feature);
+#endif
 #if VK_KHR_buffer_device_address
 	VkPhysicalDeviceBufferDeviceAddressFeatures enabledBufferDeviceAddressFeatures = {};
 	enabledBufferDeviceAddressFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES;
@@ -1042,6 +1062,11 @@ bool vulkan_add_device(vulkan_backend* vk)
 		if (vk->active_gpu_settings.dedicated_allocations)
 		{
 			SL_LOG_INFO("Successfully loaded Dedicated Allocation extension\n");
+		}
+
+		if(vk->active_gpu_settings.dynamic_rendering)
+		{
+			SL_LOG_INFO("Successfully loaded Dynamic Rendering extension\n");
 		}
 
 #if VK_KHR_draw_indirect_count
