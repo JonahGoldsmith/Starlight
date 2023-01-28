@@ -34,6 +34,7 @@ typedef struct os_window os_window;
 typedef struct os_window_handle
 {
 	void* handle;
+	void* layer;
 }os_window_handle;
 
 typedef struct os_window_desc

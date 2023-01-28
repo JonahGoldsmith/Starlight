@@ -27,5 +27,52 @@
 
 #include "base/defines.h"
 
+#define ENABLE_GRAPHICS_DEBUG 1
+#define MAX_INSTANCE_EXTENSIONS 64
+
+#if !defined(__ANDROID__)
+#define ENABLE_DEBUG_UTILS_EXTENSION
+#endif
+
+#define CHECK_VKRESULT(exp)                                                      \
+	{                                                                            \
+		VkResult vkres = (exp);                                                  \
+		if (VK_SUCCESS != vkres)                                                 \
+		{                                                                        \
+			SL_LOG_ERROR("%s: FAILED with VkResult: %d\n", #exp, vkres); \
+			SL_ASSERT(false, "See Last Error");                                                       \
+		}                                                                        \
+	}
+
+#define SAFE_FREE(alloc, p_var)       \
+	if (p_var)                 \
+	{                          \
+		sl_free(alloc, (void*)p_var); \
+	}
+
+#if defined(__cplusplus)
+#define DECLARE_ZERO(type, var) type var = {};
+#else
+#define DECLARE_ZERO(type, var) type var = { 0 };
+#endif
+
+struct vk_gpu_settings
+{
+	bool render_doc_layer_enabled;
+	bool dedicated_allocations;
+	bool memory_req_2_ext;
+	bool frag_shader_interlock_ext;
+	bool draw_indirect_count;
+	bool descriptor_indexing;
+	bool dynamic_rendering;
+	bool amd_draw_indirect_count;
+	bool amd_gcn_shader_extension;
+	bool ycbr_conversion_extension;
+	bool buffer_device_address;
+#if SL_PLATFORM_WINDOWS
+	bool external_memory_ext;
+	bool external_memory_win32_ext;
+#endif
+};
 
 #endif//RENDER_BACKEND_VULKAN_LOADER_H

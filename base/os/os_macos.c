@@ -28,6 +28,9 @@
 #ifdef SL_PLATFORM_OSL
 
 #include "base/thread/atomics.inl"
+#include "memory/allocator.h"
+
+extern struct sl_allocator_api* sl_allocator_api;
 
 #include <unistd.h>
 
@@ -88,7 +91,7 @@ static void* internal_thread_func(void *data)
 {
     struct internal_thread_data *itd = (struct internal_thread_data *)data;
     struct internal_thread_data td = *itd;
-    free(itd);
+    sl_free(sl_allocator_api->system, itd);
     td.entry(td.user_data);
     if (td.debug_name)
         pthread_setname_np(td.debug_name);
@@ -97,7 +100,7 @@ static void* internal_thread_func(void *data)
 
 static sl_os_thread macos_create_thread(thread_entry *entry, void *user_data, uint32_t stack_size, const char *debug_name)
 {
-    struct internal_thread_data *td = malloc(sizeof(struct internal_thread_data));
+    struct internal_thread_data *td = sl_alloc(sl_allocator_api->system, sizeof(struct internal_thread_data));
 
     td->entry = entry;
     td->user_data = user_data;
@@ -228,12 +231,12 @@ static void set_main_fib_index(uint32_t i)
 // TODO: Use the Data passed from Minicoro?
 static void* mini_coro_alloc(size_t size, void* data)
 {
-    return malloc(size);
+    return sl_alloc(sl_allocator_api->system, size);
 }
 
 static void mini_coro_free(void* ptr, void* data)
 {
-    free(ptr);
+    sl_free(sl_allocator_api->system, ptr);
 }
 
 //Entry Point For Fibers... We use this isntead of the actual function passed to user_data

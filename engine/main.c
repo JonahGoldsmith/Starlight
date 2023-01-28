@@ -86,6 +86,8 @@ bool tick(void* data)
 		return true;
 	}
 
+	SL_LOG_INFO("Total Allocated Before Shutdown %u\n", sl_allocator_api->stats->total_amount_allocated);
+
 	window_api->shutdown_window_system();
 
 	return false;
@@ -153,9 +155,12 @@ sl_run_state* application_init(int argc, char** argv)
 	render_api->create_backend(&backend, &render_backend_alloc);
 
 	os_window_handle handle = window_api->get_native_handle(main_window);
-
+	sl_window_handle win_handle = {
+		.handle = handle.handle,
+		.layer = handle.layer,
+	};
 	sl_swapchain_desc swap_desc = {
-		.handle = handle.handle
+		.handle = win_handle
 	};
 
 	swapchain = backend.create_swapchain(&backend, &swap_desc);

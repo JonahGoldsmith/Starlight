@@ -30,6 +30,7 @@ typedef struct sl_swapchain sl_swapchain;
 typedef struct sl_window_handle
 {
 	void* handle;
+	void* layer;
 }sl_window_handle;
 
 typedef struct sl_swapchain_desc

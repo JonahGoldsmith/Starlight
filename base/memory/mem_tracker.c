@@ -25,11 +25,12 @@
 #include "allocator.h"
 #include "data_structures/array.inl"
 #include "data_structures/hash.inl"
+#include "logging/logger.h"
 #include "thread/atomics.inl"
 #include "thread/mutex.inl"
 #include "util/assertions.inl"
+#include "util/path_util.inl"
 #include "util/sprintf.h"
-#include "logging/logger.h"
 
 /*DISCLAIMER: MEMORY TRACKER BASED OFF OF
 https://github.com/nothings/stb/blob/master/stb_leakcheck.h
@@ -88,7 +89,7 @@ static void print_traces(uint32_t context)
 			if (t->context == context && t->amount_allocated) {
 				const struct sl_memory_tracker_trace cur_trace = internal_tracker->traces[i];
 				sl_unlock_mutex(&internal_tracker->tracker_mutex);
-				SL_LOG_INFO("Leaked %llu bytes. File %s:%i in function |%s|\n", cur_trace.amount_allocated,  cur_trace.file,  cur_trace.line, cur_trace.func);
+				SL_LOG_INFO("Leaked %llu bytes. File %s:%i in function |%s|\n", cur_trace.amount_allocated,  sl_get_file_name(cur_trace.file),  cur_trace.line, cur_trace.func);
 				sl_lock_mutex(&internal_tracker->tracker_mutex);
 			}
 		}

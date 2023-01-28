@@ -117,6 +117,7 @@ os_window_handle macos_get_native_handle(os_window* p_window)
 	GLFWwindow* glfw = (GLFWwindow *)p_window;
 	NSWindow *ns_window = glfwGetCocoaWindow(glfw);
 	handle.handle = ns_window;
+	handle.layer = ns_window.contentView.layer;
 	return handle;
 }
 
